@@ -1,0 +1,9 @@
+package io.canduer.nexusflow.enums;
+
+public enum Permissions {
+
+ CUSTOMER_READ, CUSTOMER_CREATE, CUSTOMER_DELETE,
+
+ INVOICE_READ, INVOICE_CREATE, INVOICE_UPDATE, INVOICE_DELETE
+
+}
