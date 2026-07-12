@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class InvoiceConsumer {
 
-    @KafkaListener(topics = "invoice-created", groupId = "notification-group")
+    //@KafkaListener(topics = "invoice-created", groupId = "notification-group")
     public void consume(InvoiceCreatedEvent event) {
         log.info("InvoiceConsumer:invoice created event received = {}", event);
     }

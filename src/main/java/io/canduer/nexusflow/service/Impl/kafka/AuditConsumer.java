@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 public class AuditConsumer {
-    @KafkaListener(topics = "invoice-created", groupId = "audit-group")
+    //@KafkaListener(topics = "invoice-created", groupId = "audit-group")
     public void consume(InvoiceCreatedEvent event) {
         log.info("AuditConsumer:invoice created event received = {}", event);
     }

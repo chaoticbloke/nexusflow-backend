@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class InvoiceDltConsumer {
 
-    @KafkaListener(topics = "invoice-created-dlt", groupId = "dlt-group")
+    //@KafkaListener(topics = "invoice-created-dlt", groupId = "dlt-group")
     public void consume(InvoiceCreatedEvent event) {
 
         log.error("DLT RECEIVED FAILED EVENT {}", event);

@@ -10,10 +10,10 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 public class NotificationConsumer3 {
-    @KafkaListener(
-            topics = "invoice-created-v2",
-            groupId = "notification-group"
-    )
+//    @KafkaListener(
+//            topics = "invoice-created-v2",
+//            groupId = "notification-group"
+//    )
     public void consume(InvoiceCreatedEvent event, @Header(KafkaHeaders.RECEIVED_PARTITION) int partition) {
 
         log.info(
