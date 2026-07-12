@@ -13,35 +13,34 @@ import java.util.UUID;
 @Table( name = "USERS")
 @Getter
 @Setter
-public class User {
+public class User extends BaseEntity{
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    private UUID userId;
+    private String userId;
 
     //user profile related
     private String firstName;
     private String lastName;
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false, unique = true)
     private String email;
     private String position;
     private String bio;
     private String address;
+
+    @Column(unique = true)
     private String phone;
-    private String profileUrl;
+
+    private String profileImageUrl;
 
     //Auth related
     private String password;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-    private boolean isAccountLocked;
+    private boolean accountLocked;
     private boolean emailVerified;
     private boolean phoneVerified;
 
-    private boolean usingMfa;
+    private boolean enabled;
+    private LocalDateTime lastLogin;
+    private boolean mfaEnabled;
     private int failedLoginAttempts;
 
     @ManyToMany(fetch  = FetchType.EAGER)
@@ -51,15 +50,4 @@ public class User {
             inverseJoinColumns = @JoinColumn(name="ROLE_ID")
     )
     private Set<Role> roles;
-
-    @PrePersist
-    public void prePersist() {
-        userId = UUID.randomUUID();
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-    @PreUpdate
-    public void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 }

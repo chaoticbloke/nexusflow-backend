@@ -41,6 +41,14 @@
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
+
+		<!-- Source: https://mvnrepository.com/artifact/com.github.librepdf/openpdf -->
+		<dependency>
+			<groupId>com.github.librepdf</groupId>
+			<artifactId>openpdf</artifactId>
+			<version>3.0.5</version>
+			<scope>compile</scope>
+		</dependency>
 		<!-- REST APIs -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

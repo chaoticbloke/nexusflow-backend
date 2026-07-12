@@ -1,11 +1,8 @@
 package io.canduer.nexusflow.auth;
 
-import io.canduer.nexusflow.dto.LoginRequestDTO;
-import io.canduer.nexusflow.dto.LoginResponseDto;
-import io.canduer.nexusflow.dto.RegistrationRequestDTO;
-import io.canduer.nexusflow.dto.RegistrationResponseDTO;
+import io.canduer.nexusflow.dto.*;
 
 public interface AuthService {
     RegistrationResponseDTO register(RegistrationRequestDTO registrationRequestDTO);
-    LoginResponseDto login(LoginRequestDTO loginRequestDTO);
+    ApiResponse<LoginResponseDto> login(LoginRequestDTO loginRequestDTO);
 }

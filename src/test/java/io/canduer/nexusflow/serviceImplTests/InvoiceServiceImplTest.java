@@ -4,18 +4,23 @@ import io.canduer.nexusflow.dto.ApiResponse;
 import io.canduer.nexusflow.dto.InvoiceDTO;
 import io.canduer.nexusflow.entity.Customer;
 import io.canduer.nexusflow.entity.Invoice;
+import io.canduer.nexusflow.enums.InvoiceStatus;
 import io.canduer.nexusflow.exception.ResourceNotFoundException;
 import io.canduer.nexusflow.mapper.InvoiceMapper;
 import io.canduer.nexusflow.repository.CustomerRepository;
 import io.canduer.nexusflow.repository.InvoiceRepository;
 import io.canduer.nexusflow.service.Impl.InvoiceServiceImpl;
 import io.canduer.nexusflow.service.Impl.NotificationService;
+import io.canduer.nexusflow.service.Impl.kafka.KafkaNotificationProducer;
 import io.canduer.nexusflow.service.Impl.kafka.KafkaProducerService;
+import io.canduer.nexusflow.utils.IdentifierUUIDGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -42,6 +47,12 @@ public class InvoiceServiceImplTest {
 
     @Mock
     KafkaProducerService kafkaProducerService;
+
+    @Mock
+    private KafkaNotificationProducer kafkaNotificationProducer;
+
+    @Mock
+    IdentifierUUIDGenerator identifierUUIDGenerator;
 
     private final String customerId = "TEST_CUSTOMER_ID";
 
@@ -141,10 +152,10 @@ public class InvoiceServiceImplTest {
 
     private Invoice getInvoice() {
         Invoice invoice = new Invoice();
-        invoice.setStatus("PENDING");
+        invoice.setStatus(InvoiceStatus.valueOf("PENDING"));
         invoice.setCustomer(getCustomer().get());
         invoice.setServices("TEST_SERVICE");
-        invoice.setTotal(12345.7);
+        invoice.setTotal(BigDecimal.valueOf(12345.7));
         return invoice;
     }
 

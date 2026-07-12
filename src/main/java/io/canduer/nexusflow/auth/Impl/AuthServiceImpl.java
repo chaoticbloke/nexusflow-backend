@@ -1,10 +1,7 @@
 package io.canduer.nexusflow.auth.Impl;
 
 import io.canduer.nexusflow.auth.AuthService;
-import io.canduer.nexusflow.dto.LoginRequestDTO;
-import io.canduer.nexusflow.dto.LoginResponseDto;
-import io.canduer.nexusflow.dto.RegistrationRequestDTO;
-import io.canduer.nexusflow.dto.RegistrationResponseDTO;
+import io.canduer.nexusflow.dto.*;
 import io.canduer.nexusflow.entity.Role;
 import io.canduer.nexusflow.entity.User;
 import io.canduer.nexusflow.enums.RolesEnum;
@@ -13,8 +10,10 @@ import io.canduer.nexusflow.jwt.JwtService;
 import io.canduer.nexusflow.mapper.UserEntityMapper;
 import io.canduer.nexusflow.repository.RoleRepository;
 import io.canduer.nexusflow.repository.UserRepository;
+import io.canduer.nexusflow.utils.IdentifierUUIDGenerator;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -25,6 +24,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Set;
 
+@Slf4j
 @Service
 @AllArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -35,6 +35,7 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final RoleRepository roleRepository;
     private final JwtService jwtService;
+    private IdentifierUUIDGenerator identifierUUIDGenerator;
     @Override
     @Transactional
     public RegistrationResponseDTO register(RegistrationRequestDTO registrationRequestDTO) {
@@ -42,12 +43,13 @@ public class AuthServiceImpl implements AuthService {
        userRepository.findByEmail(registrationRequestDTO.getEmail()).ifPresent((user)->new EmailAlreadyExistsException("User already exists with this email :"+ user.getEmail()));
         //create new user and save it to DB
         User user = new User();
+        user.setUserId(identifierUUIDGenerator.generateUserId());
         user.setEmail(registrationRequestDTO.getEmail());
         user.setFirstName(registrationRequestDTO.getFirstName());
         user.setLastName(registrationRequestDTO.getLastName());
         user.setAccountLocked(false);
         user.setEmailVerified(false);
-        user.setUsingMfa(false);
+        user.setMfaEnabled(false);
 
         Role role = roleRepository.findByRoleName(RolesEnum.ROLE_ADMIN).orElseThrow();
         System.out.println("ROLE FROM DB "+role.getRoleName());
@@ -62,23 +64,38 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public LoginResponseDto login(LoginRequestDTO loginRequestDTO) {
+    public ApiResponse<LoginResponseDto> login(LoginRequestDTO loginRequestDTO) {
 
         SecurityContext securityContext =  SecurityContextHolder.getContext();
 
         Authentication authenticationRequest = new UsernamePasswordAuthenticationToken(loginRequestDTO.getEmail(), loginRequestDTO.getPassword());
-        System.out.println("authenticationRequest identity"+ authenticationRequest.getAuthorities());
+
         Authentication authenticatedAuthentication = authenticationManager.authenticate(authenticationRequest);
         System.out.println("authenticatedAuthentication identity"+ authenticatedAuthentication.getAuthorities());
 
-        //set the context
+        //set the context: DON'T NEED . WHY?
         securityContext.setAuthentication(authenticatedAuthentication);
 
-        return LoginResponseDto.builder()
+        CustomUserDetails principal = (CustomUserDetails) authenticatedAuthentication.getPrincipal();
+
+        User user = principal.getUser();
+
+        UserDto userDto = UserDto.builder()
+                .userId(user.getUserId().toString())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .roles(user.getRoles().stream().map(Role::getRoleName).map(RolesEnum::name).toList())
+                .build();
+
+        LoginResponseDto loginResponseDto = LoginResponseDto.builder()
+                .token(jwtService.generateToken((CustomUserDetails) authenticatedAuthentication.getPrincipal()))
+                .user(userDto)
+                .build();
+        return ApiResponse.<LoginResponseDto>builder()
                 .success(authenticatedAuthentication.isAuthenticated())
                 .message("User logged in successfully")
-                .httpStatusCode(200)
-                .token(jwtService.generateToken((CustomUserDetails) authenticatedAuthentication.getPrincipal()))
+                .data(loginResponseDto)
                 .build();
     }
 

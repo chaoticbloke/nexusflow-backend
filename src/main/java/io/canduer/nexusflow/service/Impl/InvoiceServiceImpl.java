@@ -5,12 +5,15 @@ import io.canduer.nexusflow.dto.InvoiceDTO;
 import io.canduer.nexusflow.dto.events.InvoiceCreatedEvent;
 import io.canduer.nexusflow.entity.Customer;
 import io.canduer.nexusflow.entity.Invoice;
+import io.canduer.nexusflow.enums.InvoiceStatus;
 import io.canduer.nexusflow.exception.ResourceNotFoundException;
 import io.canduer.nexusflow.mapper.InvoiceMapper;
 import io.canduer.nexusflow.repository.CustomerRepository;
 import io.canduer.nexusflow.repository.InvoiceRepository;
-import io.canduer.nexusflow.service.Impl.kafka.KafkaProducerService;
+import io.canduer.nexusflow.service.Impl.kafka.KafkaNotificationProducer;
 import io.canduer.nexusflow.service.InvoiceService;
+import io.canduer.nexusflow.service.InvoicePdfService;
+import io.canduer.nexusflow.utils.IdentifierUUIDGenerator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +22,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -32,20 +34,15 @@ public class InvoiceServiceImpl implements InvoiceService {
     private final CustomerRepository customerRepository;
 
     private final NotificationService notificationService;
-
-    private final KafkaProducerService kafkaProducerService;
+    private final KafkaNotificationProducer kafkaNotificationProducer;
+    private final IdentifierUUIDGenerator identifierUUIDGenerator;
+    private final InvoicePdfService pdfService;
 
     @Override
     @Transactional
     public ApiResponse<InvoiceDTO> createInvoice(InvoiceDTO invoiceDTO, String customerId) {
        Invoice invoice = invoiceMapper.invoiceDtoToInvoiceEntity(invoiceDTO);
-        invoice.setInvoiceNumber(
-                "INV-" +
-                        UUID.randomUUID()
-                                .toString()
-                                .substring(0,8)
-                                .toUpperCase()
-        );
+        invoice.setInvoiceNumber(identifierUUIDGenerator.generateInvoiceNumber());
       Customer customer = customerRepository.findByCustomerId(customerId)
               .orElseThrow(()-> new ResourceNotFoundException("Customer not found for this id"));
 
@@ -58,7 +55,7 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .customerId(customerId)
                 .invoiceNumber(invoice.getInvoiceNumber())
                 .build();
-        kafkaProducerService.publicInvoiceCreated(event);
+        kafkaNotificationProducer.publishInvoiceCreatedV2(event);
 
        return ApiResponse.<InvoiceDTO>builder()
                .message("Invoice Created Successfully")
@@ -110,7 +107,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     public ApiResponse<InvoiceDTO> updateInvoiceStatus(String invoiceNumber, String status) {
        Invoice invoice =  invoiceRepository.findByInvoiceNumber(invoiceNumber)
                .orElseThrow(()->new ResourceNotFoundException("Invoice not found :"+invoiceNumber));
-       invoice.setStatus(status);
+       invoice.setStatus(InvoiceStatus.valueOf(status));
       return ApiResponse.<InvoiceDTO>builder()
                       .message("Invoice updated successfully")
                       .success(true)
@@ -126,5 +123,15 @@ public class InvoiceServiceImpl implements InvoiceService {
                                 "Invoice not found"));
 
         invoiceRepository.delete(invoice);
+    }
+
+    @Override
+    public byte[] downloadInvoicePdf(String invoiceNumber) {
+     Invoice invoice  =  invoiceRepository.findByInvoiceNumber(invoiceNumber)
+             .orElseThrow(()-> new ResourceNotFoundException("Invoice not found "+invoiceNumber));
+
+     //TODO: validate owner
+
+       return pdfService.generateInvoicePdf(invoice);
     }
 }

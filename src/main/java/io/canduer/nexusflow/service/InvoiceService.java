@@ -25,4 +25,5 @@ public interface InvoiceService {
     // Delete
     void deleteInvoice(String invoiceNumber);
 
+    byte[] downloadInvoicePdf(String invoiceNumber);
 }

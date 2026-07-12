@@ -1,36 +1,31 @@
 package io.canduer.nexusflow.entity;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.canduer.nexusflow.enums.InvoiceStatus;
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.io.Serializable;
-import java.time.LocalDateTime;
-import java.util.Date;
-
+import java.math.BigDecimal;
+import java.time.LocalDate;
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-public class Invoice implements Serializable {
+public class Invoice extends BaseEntity {
 
-    private static final long serialVersionUID = 1L;
-
-    @Id
-    @GeneratedValue( strategy = GenerationType.IDENTITY)
-    private Long id;
     private String invoiceNumber;
-    private String status;
-    private String services;
-    private Date date;
-    private double total;
 
-    @ManyToOne
-    @JoinColumn( name ="customer_id", nullable = false)
-    @JsonIgnore
+    @Enumerated(EnumType.STRING)
+    private InvoiceStatus status;
+    private String services;
+    private LocalDate invoiceDate;
+    private LocalDate dueDate;
+    private BigDecimal total;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
-    @Builder.Default
-    private LocalDateTime createAt = LocalDateTime.now();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    private User createdBy;
 }

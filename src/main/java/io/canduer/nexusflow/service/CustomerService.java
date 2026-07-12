@@ -1,18 +1,18 @@
 package io.canduer.nexusflow.service;
 
-import io.canduer.nexusflow.dto.ApiResponse;
-import io.canduer.nexusflow.dto.CreateCustomerRequestDTO;
-import io.canduer.nexusflow.dto.CustomerResponseDTO;
+import io.canduer.nexusflow.dto.*;
 import io.canduer.nexusflow.entity.Customer;
 import io.canduer.nexusflow.entity.Invoice;
 import org.springframework.data.domain.Page;
+
+import java.util.List;
 
 public interface CustomerService {
 
     //customer methods
     ApiResponse<CustomerResponseDTO> createCustomer(CreateCustomerRequestDTO customer);
-    Customer updateCustomer(Customer customer);
-    Page<Customer> getCustomers(int page, int pageSize);
+    CustomerResponseDTO updateCustomer(String customerId, UpdateCustomerRequestDTO createCustomerRequestDTO);
+    ApiResponse<Page<CustomerResponseDTO>> getCustomers(int page, int pageSize);
     Page<Customer> searchCustomers(String name, int page, int pageSize);
 
 
@@ -20,4 +20,10 @@ public interface CustomerService {
     Invoice createInvoice(Invoice invoice);
     void addInvoiceToCustomer(Long customerId, Invoice invoice);
     Page<Invoice> getInvoices(int page , int pageSize);
+
+    CustomerResponseDTO getCustomer(String customerId);
+
+    void deleteCustomer(String customerId);
+
+    List<InvoiceDTO> getCustomerInvoices(String customerId);
 }

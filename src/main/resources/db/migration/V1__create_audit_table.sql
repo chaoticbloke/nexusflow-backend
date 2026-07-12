@@ -1,5 +1,0 @@
-CREATE TABLE audit_log (
-    id BIGSERIAL PRIMARY KEY,
-    action VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);

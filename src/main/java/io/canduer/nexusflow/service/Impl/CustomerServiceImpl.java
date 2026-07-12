@@ -1,26 +1,30 @@
 package io.canduer.nexusflow.service.Impl;
 
-import io.canduer.nexusflow.dto.ApiResponse;
-import io.canduer.nexusflow.dto.CreateCustomerRequestDTO;
-import io.canduer.nexusflow.dto.CustomerResponseDTO;
+import io.canduer.nexusflow.dto.*;
 import io.canduer.nexusflow.entity.Customer;
 import io.canduer.nexusflow.entity.Invoice;
+import io.canduer.nexusflow.entity.User;
+import io.canduer.nexusflow.enums.CustomerType;
+import io.canduer.nexusflow.exception.ResourceNotFoundException;
+import io.canduer.nexusflow.mapper.CustomerMapper;
+import io.canduer.nexusflow.mapper.InvoiceMapper;
 import io.canduer.nexusflow.repository.CustomerRepository;
+import io.canduer.nexusflow.repository.InvoiceRepository;
 import io.canduer.nexusflow.service.CustomerService;
+import io.canduer.nexusflow.utils.IdentifierUUIDGenerator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
+import java.util.List;
 import java.util.Set;
-import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -29,44 +33,37 @@ public class CustomerServiceImpl implements CustomerService {
 
     private final CustomerRepository customerRepository;
 
+    private final InvoiceRepository invoiceRepository;
+
+    private final CurrentUserService currentUserService;
+
+    private final IdentifierUUIDGenerator identifierUUIDGenerator;
+
+    private final CustomerMapper customerMapper;
+
+    private final InvoiceMapper invoiceMapper;
+
     @Override
     @Transactional
-    @CacheEvict(value = "customers", allEntries = true) //meaning - delete the cache on getcutoer to get the new data
+    @CacheEvict(value = "customers", allEntries = true) //meaning - delete the cache on getCustomer to get the new data
     public ApiResponse<CustomerResponseDTO> createCustomer(CreateCustomerRequestDTO customerRequestDTO) {
 
-        String customerId = "CUST-" + UUID.randomUUID()
-                                .toString()
-                                .substring(0, 8)
-                                .toUpperCase();
+        log.info("createCustomer customerRequestDTO payload: {}", customerRequestDTO);
+        User currentLoggedInUser = currentUserService.getCurrentUser();
+
         Customer customer = Customer.builder()
-                .customerId(customerId)
+                .customerId(identifierUUIDGenerator.generateCustomerId())
                 .name(customerRequestDTO.getName())
                 .email(customerRequestDTO.getEmail())
                 .address(customerRequestDTO.getAddress())
                 .phone(customerRequestDTO.getPhone())
-                .type(customerRequestDTO.getType())
+                .type(CustomerType.valueOf(customerRequestDTO.getType().toUpperCase()))
+                .createdBy(currentLoggedInUser)
                 .build();
 
 
-        String invoiceNumber = "INVOICE-" + UUID.randomUUID()
-                .toString()
-                .substring(0, 8)
-                .toUpperCase();
-
-        Invoice invoice = new Invoice();
-        invoice.setCustomer(customer);
-        invoice.setInvoiceNumber(invoiceNumber);
-        invoice.setServices("TEST INVOICE");
-        invoice.setStatus("PENDING");
-        invoice.setTotal(1234.56);
-        invoice.setDate(new Date());
-
-        Invoice invoice1 = new Invoice();
-        invoice1.setCustomer(customer);
-
-        customer.setInvoices(Set.of(invoice, invoice1));
         Customer savedCustomer = customerRepository.save(customer);
-
+        log.info("saved customer in DB name : {}", savedCustomer.getName());
         CustomerResponseDTO customerResponseDTO = CustomerResponseDTO.builder()
                 .customerId(savedCustomer.getCustomerId())
                 .name(savedCustomer.getName())
@@ -75,6 +72,7 @@ public class CustomerServiceImpl implements CustomerService {
                 .address(savedCustomer.getAddress())
                 .phone(savedCustomer.getPhone())
                 .build();
+
        return ApiResponse.<CustomerResponseDTO>builder()
                .success(true)
                .message("Customer created successfully")
@@ -83,19 +81,31 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public Customer updateCustomer(Customer customer) {
-        return null;
+    @Transactional
+    public CustomerResponseDTO updateCustomer(String customerId, UpdateCustomerRequestDTO updateCustomerRequestDTO) {
+        log.info("Updating customer {}", customerId);
+        Customer customer = customerRepository.findByCustomerId(customerId).orElseThrow(() -> new ResourceNotFoundException("Customer not found for this id " + customerId));
+
+        customer.setName(updateCustomerRequestDTO.getName());
+        customer.setType(CustomerType.valueOf(updateCustomerRequestDTO.getType().toUpperCase()));
+        customer.setAddress(updateCustomerRequestDTO.getAddress());
+        customer.setEmail(updateCustomerRequestDTO.getEmail());
+        customer.setPhone(updateCustomerRequestDTO.getPhone());
+
+        Customer savedCustomer = customerRepository.save(customer); //hibernate managed entity - save is optional in here-JPA's dirty checking
+
+
+        return customerMapper.customerEntityToCustomerDTO(savedCustomer);
     }
 
     @Override
-    @Cacheable(
-            value = "customers",
-            key = "#pageNumber + '-' + #pageSize"
-    )
-    public Page<Customer> getCustomers(int pageNumber, int pageSize) {
+    public ApiResponse<Page<CustomerResponseDTO>> getCustomers(int pageNumber, int pageSize) {
         log.info("Fetching customers from DB");
         PageRequest pageRequest = PageRequest.of(pageNumber, pageSize, Sort.by("createdAt").descending());
-        return customerRepository.findAll(pageRequest);
+        Page<Customer> customers = customerRepository.findAll(pageRequest);
+       return ApiResponse.<Page<CustomerResponseDTO>>builder()
+               .data(customers.map(customerMapper::customerEntityToCustomerDTO))
+               .build();
     }
 
     @Override
@@ -117,5 +127,35 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     public Page<Invoice> getInvoices(int page, int pageSize) {
         return null;
+    }
+
+    @Override
+    public CustomerResponseDTO getCustomer(String customerId) {
+        Customer customer = customerRepository.findByCustomerId(customerId).orElseThrow(()->new ResourceNotFoundException("Customer not found for this customerId "+ customerId));
+        return customerMapper.customerEntityToCustomerDTO(customer);
+    }
+
+    @Override
+    public void deleteCustomer(String customerId) {
+        Customer customer = customerRepository
+                .findByCustomerId(customerId)
+                .orElseThrow(()->new ResourceNotFoundException("Customer not found for this customerId "+ customerId));
+
+        customerRepository.delete(customer);
+    }
+
+    @Override
+    public List<InvoiceDTO> getCustomerInvoices(String customerId) {
+
+        customerRepository.findByCustomerId(customerId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Customer not found with id: " + customerId));
+
+        return invoiceRepository
+                .findByCustomerCustomerIdOrderByCreatedAtDesc(customerId)
+                .stream()
+                .map(invoiceMapper::invoiceEntityToInvoiceDto)
+                .toList();
     }
 }

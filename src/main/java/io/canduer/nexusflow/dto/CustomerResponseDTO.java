@@ -1,18 +1,20 @@
 package io.canduer.nexusflow.dto;
 
+import io.canduer.nexusflow.enums.CustomerType;
 import lombok.Builder;
 import lombok.Data;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Data
 @Builder
-public class CustomerResponseDTO {
+public class CustomerResponseDTO implements Serializable {
 
     private String customerId;
     private String name;
     private String email;
-    private String type;
+    private CustomerType type;
     private String address;
     private String phone;
 

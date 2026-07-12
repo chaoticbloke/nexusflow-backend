@@ -1,12 +1,9 @@
 package io.canduer.nexusflow.dto;
 
 import lombok.Data;
-import lombok.ToString;
 
 @Data
-@ToString
-public class CreateCustomerRequestDTO {
-
+public class UpdateCustomerRequestDTO {
     private String name;
     private String email;
     private String type;

@@ -2,19 +2,16 @@ package io.canduer.nexusflow.service.Impl.kafka;
 
 import io.canduer.nexusflow.dto.events.InvoiceCreatedEvent;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
-public class KafkaProducerService {
+public class KafkaNotificationProducer {
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public void publishInvoiceCreated(InvoiceCreatedEvent event) {
-        kafkaTemplate.send("invoice-created", event);
-        log.info("Published invoice event {}", event.getInvoiceNumber());
+    public void publishInvoiceCreatedV2(InvoiceCreatedEvent event) {
+        //topic, key, event
+        kafkaTemplate.send("invoice-created-v2", event.getCustomerId(), event);
     }
-
 }

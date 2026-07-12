@@ -9,8 +9,10 @@ import org.mapstruct.Mapping;
 public interface InvoiceMapper {
 
     @Mapping(target = "totalAmount", source = "total")
+    @Mapping(target = "date", source = "dueDate")
     InvoiceDTO invoiceEntityToInvoiceDto(Invoice invoice);
 
     @Mapping(target = "total", source = "totalAmount")
+    @Mapping(target = "dueDate", source = "date")
     Invoice invoiceDtoToInvoiceEntity(InvoiceDTO invoiceDTO);
 }

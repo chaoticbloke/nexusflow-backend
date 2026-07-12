@@ -2,10 +2,14 @@ package io.canduer.nexusflow.controller;
 
 import io.canduer.nexusflow.dto.ApiResponse;
 import io.canduer.nexusflow.dto.InvoiceDTO;
+import io.canduer.nexusflow.service.InvoicePdfService;
 import io.canduer.nexusflow.service.InvoiceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -14,6 +18,8 @@ import org.springframework.web.bind.annotation.*;
 public class InvoiceController {
 
     private final InvoiceService invoiceService;
+
+    private final InvoicePdfService pdfService;
 
     @GetMapping("")
     ApiResponse<Page<InvoiceDTO>> getInvoices(@RequestParam(value = "page", defaultValue = "0") int pageNumber, @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
@@ -30,6 +36,21 @@ public class InvoiceController {
         return invoiceService.searchInvoices(invoiceNumber, page, size);
     }
 
+    @GetMapping("/{invoiceNumber}")
+    ApiResponse<InvoiceDTO> getInvoice(@PathVariable String invoiceNumber) {
+        return invoiceService.getInvoice(invoiceNumber);
+    }
+
+
+    @GetMapping("/{invoiceNumber}/download")
+    public ResponseEntity<byte[]> downloadInvoicePdf(@PathVariable String invoiceNumber) {
+
+        byte[] pdf = invoiceService.downloadInvoicePdf(invoiceNumber);
+
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + invoiceNumber + ".pdf\"")
+                .body(pdf);
+    }
 
     @PostMapping("/update/{invoiceNumber}/{status}")
     ApiResponse<InvoiceDTO> updateInvoice(@PathVariable String invoiceNumber, @PathVariable String status) {

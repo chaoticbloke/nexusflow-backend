@@ -1,2 +1,0 @@
-ALTER TABLE customer
-ADD COLUMN IF NOT EXISTS profession VARCHAR(20);

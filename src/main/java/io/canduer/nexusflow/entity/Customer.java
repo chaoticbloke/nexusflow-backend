@@ -1,11 +1,11 @@
 package io.canduer.nexusflow.entity;
 
+import io.canduer.nexusflow.enums.CustomerType;
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -13,24 +13,25 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-public class Customer implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
-    @Id
-    @GeneratedValue( strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Customer extends BaseEntity {
 
     private String customerId;
     private String name;
+
+    @Column(unique = true)
     private String email;
-    private String type;
+
+    @Enumerated(EnumType.STRING)
+    private CustomerType type;
+
     private String address;
     private String phone;
 
-    @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
+    //Many customers can be created by one user.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    private User createdBy;
 
-    @OneToMany( mappedBy = "customer", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    private Set<Invoice> invoices;
+    @OneToMany( mappedBy = "customer", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private Set<Invoice> invoices = new HashSet<>();
 }
