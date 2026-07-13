@@ -1,0 +1,14 @@
+name: NexusFlow Backend CI
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Print Hello
+        run: echo "Hello NexusFlow CI!"

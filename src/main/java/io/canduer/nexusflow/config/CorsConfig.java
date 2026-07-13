@@ -17,7 +17,7 @@ public class CorsConfig {
                 new CorsConfiguration();
 
         configuration.setAllowedOrigins(
-                List.of("http://localhost:4200", "https://nexusflowin.netlify.app"));
+                List.of("http://localhost:4200", "http://65.0.91.176"));
 
         configuration.setAllowedMethods(
                 List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
