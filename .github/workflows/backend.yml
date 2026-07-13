@@ -3,12 +3,18 @@ name: NexusFlow Backend CI
 on:
   push:
     branches:
-      - master
+      - master    # Use 'main' if that's your default branch
 
 jobs:
-  hello:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Print Hello
-        run: echo "Hello NexusFlow CI!"
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Show Files
+        run: ls -la
+
+      - name: Show Current Directory
+        run: pwd
