@@ -17,7 +17,7 @@ public class CorsConfig {
                 new CorsConfiguration();
 
         configuration.setAllowedOrigins(
-                List.of("http://localhost:4200", "http://65.0.103.241"));
+                List.of("http://localhost:4200", "http://nexusflow.works", "https://nexusflow.works"));
 
         configuration.setAllowedMethods(
                 List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
