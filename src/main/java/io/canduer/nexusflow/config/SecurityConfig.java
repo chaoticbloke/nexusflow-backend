@@ -30,7 +30,7 @@ public class SecurityConfig {
 
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
-    private final String [] publicUrls = {"/api/dashboard/**", "/api/auth/**", "/h2-console/**","/error/**", "/api/invoices/**","/api/auth/**",
+    private final String [] publicUrls = { "/api/system/**", "/api/dashboard/**", "/api/auth/**", "/h2-console/**","/error/**", "/api/invoices/**","/api/auth/**",
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html"};
