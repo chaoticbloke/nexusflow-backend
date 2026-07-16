@@ -1,4 +1,4 @@
-name: NexusFlow Backend CI
+name: NexusFlow Backend CI & CD pipeline using github actions
 
 on:
   push:
