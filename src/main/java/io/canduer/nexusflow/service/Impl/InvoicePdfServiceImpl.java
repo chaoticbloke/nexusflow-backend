@@ -1,10 +1,10 @@
 package io.canduer.nexusflow.service.Impl;
 
+import com.lowagie.text.*;
+import com.lowagie.text.pdf.PdfWriter;
 import io.canduer.nexusflow.entity.Customer;
 import io.canduer.nexusflow.entity.Invoice;
 import io.canduer.nexusflow.service.InvoicePdfService;
-import org.openpdf.text.*;
-import org.openpdf.text.pdf.PdfWriter;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;

@@ -46,8 +46,7 @@
 		<dependency>
 			<groupId>com.github.librepdf</groupId>
 			<artifactId>openpdf</artifactId>
-			<version>3.0.5</version>
-			<scope>compile</scope>
+			<version>2.0.5</version>
 		</dependency>
 		<!-- REST APIs -->
 		<dependency>
