@@ -23,6 +23,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -55,7 +57,7 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .customerId(customerId)
                 .invoiceNumber(invoice.getInvoiceNumber())
                 .build();
-        kafkaNotificationProducer.publishInvoiceCreatedV2(event);
+        //kafkaNotificationProducer.publishInvoiceCreatedV2(event);
 
        return ApiResponse.<InvoiceDTO>builder()
                .message("Invoice Created Successfully")
@@ -104,11 +106,15 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     @Override
-    public ApiResponse<InvoiceDTO> updateInvoiceStatus(String invoiceNumber, String status) {
-       Invoice invoice =  invoiceRepository.findByInvoiceNumber(invoiceNumber)
-               .orElseThrow(()->new ResourceNotFoundException("Invoice not found :"+invoiceNumber));
-       invoice.setStatus(InvoiceStatus.valueOf(status));
-      return ApiResponse.<InvoiceDTO>builder()
+    public ApiResponse<InvoiceDTO> updateInvoiceStatus(String invoiceNumber, InvoiceDTO invoiceDTO) {
+        Invoice invoice = invoiceRepository.findByInvoiceNumber(invoiceNumber)
+                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found :" + invoiceNumber));
+
+        invoice.setStatus(InvoiceStatus.valueOf(invoiceDTO.getStatus()));
+        invoice.setTotal(BigDecimal.valueOf(invoiceDTO.getTotalAmount()));
+        invoice.setServices(invoiceDTO.getServices());
+
+        return ApiResponse.<InvoiceDTO>builder()
                       .message("Invoice updated successfully")
                       .success(true)
                       .data(invoiceMapper.invoiceEntityToInvoiceDto(invoiceRepository.save(invoice))).build();

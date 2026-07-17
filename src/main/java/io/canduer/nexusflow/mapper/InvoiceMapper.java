@@ -10,6 +10,7 @@ public interface InvoiceMapper {
 
     @Mapping(target = "totalAmount", source = "total")
     @Mapping(target = "date", source = "dueDate")
+    @Mapping(target = "customerName", source = "customer.name")
     InvoiceDTO invoiceEntityToInvoiceDto(Invoice invoice);
 
     @Mapping(target = "total", source = "totalAmount")

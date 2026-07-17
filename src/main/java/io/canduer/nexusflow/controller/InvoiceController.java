@@ -27,7 +27,7 @@ public class InvoiceController {
     }
 
     @PostMapping("/create/{customerId}")
-    ApiResponse<InvoiceDTO> e(@RequestBody @Valid InvoiceDTO invoice, @PathVariable String customerId) {
+    ApiResponse<InvoiceDTO> createInvoice(@RequestBody @Valid InvoiceDTO invoice, @PathVariable String customerId) {
         return invoiceService.createInvoice(invoice, customerId);
     }
 
@@ -52,9 +52,9 @@ public class InvoiceController {
                 .body(pdf);
     }
 
-    @PostMapping("/update/{invoiceNumber}/{status}")
-    ApiResponse<InvoiceDTO> updateInvoice(@PathVariable String invoiceNumber, @PathVariable String status) {
-        return invoiceService.updateInvoiceStatus(invoiceNumber, status);
+    @PutMapping("/update/{invoiceNumber}")
+    ApiResponse<InvoiceDTO> updateInvoice(@PathVariable String invoiceNumber, @RequestBody InvoiceDTO invoiceDTO) {
+        return invoiceService.updateInvoiceStatus(invoiceNumber, invoiceDTO);
     }
 
     @DeleteMapping("/delete/{invoiceNumber}")

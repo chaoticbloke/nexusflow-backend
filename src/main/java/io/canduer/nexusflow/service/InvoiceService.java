@@ -20,7 +20,7 @@ public interface InvoiceService {
     ApiResponse<Page<InvoiceDTO>> searchInvoices(String invoiceNumber, int pageNumber, int pageSize);
 
     // Update
-    ApiResponse<InvoiceDTO> updateInvoiceStatus(String invoiceNumber, String status);
+    ApiResponse<InvoiceDTO> updateInvoiceStatus(String invoiceNumber, InvoiceDTO invoiceDTO);
 
     // Delete
     void deleteInvoice(String invoiceNumber);

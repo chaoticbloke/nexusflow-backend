@@ -8,6 +8,7 @@ import java.util.Date;
 @Data
 public class InvoiceDTO {
     private String invoiceNumber;
+    private String customerName;
     @NotBlank
     private String status;
     private String services;
