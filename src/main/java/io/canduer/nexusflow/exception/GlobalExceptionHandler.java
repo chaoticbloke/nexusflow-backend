@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -51,11 +53,11 @@ public class GlobalExceptionHandler{
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ErrorResponseDTO> handleInvalidCredentialError(MethodArgumentNotValidException ex){
+    public ResponseEntity<ErrorResponseDTO> handleInvalidCredentialError(BadCredentialsException ex){
         ErrorResponseDTO errorResponseDTO = new ErrorResponseDTO();
         errorResponseDTO.setSuccess(false);
         errorResponseDTO.setMessage(AppConstants.CREDENTIALS_ERROR_MESSAGE);
-        errorResponseDTO.setErrors(handleValidationMessage(ex.getBindingResult().getFieldErrors()));
+        errorResponseDTO.setErrors(Collections.emptyList());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponseDTO);
     }
 
