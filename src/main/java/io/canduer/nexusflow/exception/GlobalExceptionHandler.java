@@ -4,6 +4,7 @@ import io.canduer.nexusflow.dto.ErrorResponseDTO;
 import io.canduer.nexusflow.utils.AppConstants;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -49,15 +50,14 @@ public class GlobalExceptionHandler{
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDTO);
     }
 
-    @ExceptionHandler(InvalidCredentialsException.class)
-    public ResponseEntity<ErrorResponseDTO> HandleInvalidCredentialError(MethodArgumentNotValidException ex){
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ErrorResponseDTO> handleInvalidCredentialError(MethodArgumentNotValidException ex){
         ErrorResponseDTO errorResponseDTO = new ErrorResponseDTO();
         errorResponseDTO.setSuccess(false);
         errorResponseDTO.setMessage(AppConstants.CREDENTIALS_ERROR_MESSAGE);
         errorResponseDTO.setErrors(handleValidationMessage(ex.getBindingResult().getFieldErrors()));
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDTO);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponseDTO);
     }
-
 
     private List< ErrorResponseDTO.ValidationError > handleValidationMessage(List<FieldError> fieldErrors){
         List< ErrorResponseDTO.ValidationError > errors = new ArrayList<>();
@@ -69,4 +69,5 @@ public class GlobalExceptionHandler{
         }
         return errors;
     }
+
 }

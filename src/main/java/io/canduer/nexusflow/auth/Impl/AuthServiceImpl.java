@@ -66,15 +66,25 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public ApiResponse<LoginResponseDto> login(LoginRequestDTO loginRequestDTO) {
 
-        SecurityContext securityContext =  SecurityContextHolder.getContext();
+        //SecurityContext securityContext =  SecurityContextHolder.getContext();
 
         Authentication authenticationRequest = new UsernamePasswordAuthenticationToken(loginRequestDTO.getEmail(), loginRequestDTO.getPassword());
 
         Authentication authenticatedAuthentication = authenticationManager.authenticate(authenticationRequest);
+        //this line does lot of things . one of important -Compares Passwords(BCryptPasswordEncoder.matches())
+        //if the password/email here is wrong - BadCredentialsException is thrown
         System.out.println("authenticatedAuthentication identity"+ authenticatedAuthentication.getAuthorities());
 
-        //set the context: DON'T NEED . WHY?
-        securityContext.setAuthentication(authenticatedAuthentication);
+
+        /**
+         * TODO: read
+         * set the context: DON'T NEED . WHY?
+         * SecurityContextHolder stores the authentication only for the lifetime of the current request
+         * The SecurityContext is discarded when the request finishes. Future requests won't use it because your application is stateless
+         * and each request is authenticated by your JWT filter,
+         * which reconstructs the Authentication from the token and places it into the SecurityContext.
+         */
+        //securityContext.setAuthentication(authenticatedAuthentication);
 
         CustomUserDetails principal = (CustomUserDetails) authenticatedAuthentication.getPrincipal();
 

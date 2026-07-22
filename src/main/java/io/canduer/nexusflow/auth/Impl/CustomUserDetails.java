@@ -2,7 +2,6 @@ package io.canduer.nexusflow.auth.Impl;
 
 import io.canduer.nexusflow.entity.User;
 import jakarta.annotation.Nullable;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -17,10 +16,7 @@ public class CustomUserDetails implements UserDetails {
 
     private final User user;
 
-    public User getUser(){
-        return user;
-    }
-//    @Override
+    //    @Override
 //    public Collection<? extends GrantedAuthority> getAuthorities() {
 //        List<Permission> permissions = user.getRoles().stream().flatMap(role -> role.getPermissions().stream()).toList();
 //        return permissions.stream().map(p-> new SimpleGrantedAuthority(p.getName().name())).toList();
