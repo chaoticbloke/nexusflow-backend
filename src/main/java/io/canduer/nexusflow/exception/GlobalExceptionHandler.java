@@ -1,5 +1,6 @@
 package io.canduer.nexusflow.exception;
 
+import io.canduer.nexusflow.dto.ApiResponse;
 import io.canduer.nexusflow.dto.ErrorResponseDTO;
 import io.canduer.nexusflow.utils.AppConstants;
 import org.springframework.http.HttpStatus;
@@ -70,6 +71,17 @@ public class GlobalExceptionHandler{
             errors.add(validationError);
         }
         return errors;
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidRefreshToken(
+            InvalidRefreshTokenException ex) {
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build());
     }
 
 }

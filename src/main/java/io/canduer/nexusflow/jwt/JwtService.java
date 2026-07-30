@@ -1,7 +1,9 @@
 package io.canduer.nexusflow.jwt;
 
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
+import io.canduer.nexusflow.auth.Impl.CustomUserDetails;
+import io.canduer.nexusflow.exception.InvalidRefreshTokenException;
+import io.canduer.nexusflow.utils.AppConstants;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +15,7 @@ import io.jsonwebtoken.security.SignatureException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class JwtService {
@@ -20,7 +23,7 @@ public class JwtService {
     @Value("${jwt.secret}")
     private String jwtSecretKey;
 
-    public String generateToken(UserDetails userDetails) {
+    public String generateAccessToken(UserDetails userDetails) {
         Map<String, Object> customClaims = new HashMap<>();
         /*
         customClaims eg-
@@ -47,7 +50,7 @@ public class JwtService {
                 .compact();
     }
 
-    private SecretKey getSignInKey(String jwtSecretKey) {
+    public SecretKey getSignInKey(String jwtSecretKey) {
         byte[] decode = Decoders.BASE64.decode(jwtSecretKey);
         return Keys.hmacShaKeyFor(decode);
     }
@@ -78,4 +81,29 @@ public class JwtService {
         return expiration;
     }
 
+    public String generateRefreshToken(CustomUserDetails userDetails) {
+        Map<String, String> claims = new HashMap<>();
+        claims.put("tokenType", "REFRESH");
+
+        return Jwts.builder()
+                .id("refreshtoken_id_"+UUID.randomUUID().toString().substring(0,9))
+                .subject(userDetails.getUsername())
+                .claims(claims)
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis()+ AppConstants.REFRESH_TOKEN_EXPIRY))
+                .signWith(getSignInKey(jwtSecretKey))
+                .compact();
+    }
+
+    public Claims getClaims(String refreshToken) {
+        try {
+            return Jwts.parser().verifyWith(getSignInKey(jwtSecretKey)).build().parseSignedClaims(refreshToken).getPayload();
+
+        } catch (ExpiredJwtException e) {
+            throw new InvalidRefreshTokenException("Refresh token has expired.");
+        } catch (MalformedJwtException | SignatureException | UnsupportedJwtException | IllegalArgumentException e) {
+
+            throw new InvalidRefreshTokenException("Invalid refresh token.");
+        }
+    }
 }

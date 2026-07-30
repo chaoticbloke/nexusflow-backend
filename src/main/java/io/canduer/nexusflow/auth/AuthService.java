@@ -5,4 +5,6 @@ import io.canduer.nexusflow.dto.*;
 public interface AuthService {
     RegistrationResponseDTO register(RegistrationRequestDTO registrationRequestDTO);
     ApiResponse<LoginResponseDto> login(LoginRequestDTO loginRequestDTO);
+
+    ApiResponse<RefreshTokenResponseDto> getRefreshToken(String refreshToken);
 }

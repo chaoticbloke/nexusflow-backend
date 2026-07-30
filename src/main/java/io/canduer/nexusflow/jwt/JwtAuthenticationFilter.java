@@ -52,7 +52,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
               if(StringUtils.hasText(header) && header.startsWith("Bearer ")) {
                   token = header.substring(7);
                   //extract username which is email
-                  String username= jwtService.extractUsername(token);
+                  String username= jwtService.
+                           extractUsername(token);
                   //load user from DB
                   User user = userRepository.findByEmail(username).orElseThrow(() -> new UserNotFoundException("user not found with this credentials"));
 

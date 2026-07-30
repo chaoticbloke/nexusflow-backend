@@ -2,26 +2,30 @@ package io.canduer.nexusflow.auth.Impl;
 
 import io.canduer.nexusflow.auth.AuthService;
 import io.canduer.nexusflow.dto.*;
+import io.canduer.nexusflow.entity.RefreshToken;
 import io.canduer.nexusflow.entity.Role;
 import io.canduer.nexusflow.entity.User;
 import io.canduer.nexusflow.enums.RolesEnum;
 import io.canduer.nexusflow.exception.EmailAlreadyExistsException;
+import io.canduer.nexusflow.exception.InvalidRefreshTokenException;
 import io.canduer.nexusflow.jwt.JwtService;
 import io.canduer.nexusflow.mapper.UserEntityMapper;
+import io.canduer.nexusflow.repository.RefreshTokenRepository;
 import io.canduer.nexusflow.repository.RoleRepository;
 import io.canduer.nexusflow.repository.UserRepository;
+import io.canduer.nexusflow.service.RefreshTokenService;
 import io.canduer.nexusflow.utils.IdentifierUUIDGenerator;
+import io.jsonwebtoken.Claims;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
 import java.util.Set;
 
 @Slf4j
@@ -35,13 +39,18 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final RoleRepository roleRepository;
     private final JwtService jwtService;
-    private IdentifierUUIDGenerator identifierUUIDGenerator;
+    private final IdentifierUUIDGenerator identifierUUIDGenerator;
+    private final RefreshTokenService refreshTokenService;
+    private final RefreshTokenRepository refreshTokenRepository;
+
     @Override
     @Transactional
     public RegistrationResponseDTO register(RegistrationRequestDTO registrationRequestDTO) {
-
-       userRepository.findByEmail(registrationRequestDTO.getEmail()).ifPresent((user)->new EmailAlreadyExistsException("User already exists with this email :"+ user.getEmail()));
-        //create new user and save it to DB
+        userRepository.findByEmail(registrationRequestDTO.getEmail())
+                .ifPresent(user -> {
+                    throw new EmailAlreadyExistsException(
+                            "User already exists with email: " + user.getEmail());
+                });        //create new user and save it to DB
         User user = new User();
         user.setUserId(identifierUUIDGenerator.generateUserId());
         user.setEmail(registrationRequestDTO.getEmail());
@@ -98,14 +107,59 @@ public class AuthServiceImpl implements AuthService {
                 .roles(user.getRoles().stream().map(Role::getRoleName).map(RolesEnum::name).toList())
                 .build();
 
+       String accessJwtToken = jwtService.generateAccessToken(principal);
+
+       //generates Refresh token and saved in DB
+       String refreshToken = refreshTokenService.createRefreshToken(user);
+
         LoginResponseDto loginResponseDto = LoginResponseDto.builder()
-                .token(jwtService.generateToken((CustomUserDetails) authenticatedAuthentication.getPrincipal()))
+                .accessToken(accessJwtToken)
+                .refreshToken(refreshToken)
                 .user(userDto)
                 .build();
+
+        //send both tokens in login api response
         return ApiResponse.<LoginResponseDto>builder()
                 .success(authenticatedAuthentication.isAuthenticated())
                 .message("User logged in successfully")
                 .data(loginResponseDto)
+                .build();
+    }
+
+    @Override
+    public ApiResponse<RefreshTokenResponseDto> getRefreshToken(String refreshToken) {
+        Claims claims = jwtService.getClaims(refreshToken);
+
+        if (!"REFRESH".equals(claims.get("tokenType"))) {
+            throw new InvalidRefreshTokenException("Invalid refresh token type.");
+        }
+
+        RefreshToken entity = refreshTokenRepository.findByToken(refreshToken)
+                .orElseThrow(() -> new InvalidRefreshTokenException("Refresh token not found."));
+
+        if (entity.isRevoked()) {
+            throw new InvalidRefreshTokenException("Refresh token has been revoked.");
+        }
+
+        User user = entity.getUser();
+
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+
+        if (!jwtService.isTokenValid(refreshToken, userDetails)) {
+            throw new InvalidRefreshTokenException("Refresh token has expired or is invalid.");
+        }
+
+        String accessToken = jwtService.generateAccessToken(userDetails);
+
+        RefreshTokenResponseDto response = RefreshTokenResponseDto.builder()
+                                            .accessToken(accessToken)
+                                            .refreshToken(entity.getToken()) // static refresh
+                                             .build();
+
+        return ApiResponse.<RefreshTokenResponseDto>builder()
+                .success(true)
+                .message("Access token refreshed successfully.")
+                .data(response)
                 .build();
     }
 
