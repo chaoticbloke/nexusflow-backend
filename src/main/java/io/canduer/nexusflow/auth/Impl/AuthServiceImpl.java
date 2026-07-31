@@ -8,6 +8,7 @@ import io.canduer.nexusflow.entity.User;
 import io.canduer.nexusflow.enums.RolesEnum;
 import io.canduer.nexusflow.exception.EmailAlreadyExistsException;
 import io.canduer.nexusflow.exception.InvalidRefreshTokenException;
+import io.canduer.nexusflow.exception.ResourceNotFoundException;
 import io.canduer.nexusflow.jwt.JwtService;
 import io.canduer.nexusflow.mapper.UserEntityMapper;
 import io.canduer.nexusflow.repository.RefreshTokenRepository;
@@ -25,6 +26,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -161,6 +164,40 @@ public class AuthServiceImpl implements AuthService {
                 .message("Access token refreshed successfully.")
                 .data(response)
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<GenericResponseDTO> logout(LogoutRequest logoutRequest) {
+
+        String refreshToken = logoutRequest.getRefreshToken();
+
+        //validate refresh token
+        jwtService.getClaims(refreshToken);
+
+        RefreshToken entity = refreshTokenRepository.findByToken(refreshToken)
+                .orElseThrow(() -> new InvalidRefreshTokenException("Invalid refresh token."));
+
+        if(entity.isRevoked()){
+             GenericResponseDTO dto = GenericResponseDTO.builder().message("User already logged out.")
+                     .success(true)
+                    .build();
+
+             return ApiResponse.<GenericResponseDTO>builder()
+                     .success(true)
+                     .data(dto)
+                     .build();
+        }
+            entity.setRevoked(true);
+            //refreshTokenRepository.save(entity); //no need to explicit if we have transactional. hibernate will auto update
+            GenericResponseDTO dto = GenericResponseDTO.builder().message("Logged out successfully.")
+                    .success(true)
+                    .build();
+
+            return ApiResponse.<GenericResponseDTO>builder()
+                    .success(true)
+                    .data(dto)
+                    .build();
     }
 
 }

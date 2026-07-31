@@ -7,4 +7,6 @@ public interface AuthService {
     ApiResponse<LoginResponseDto> login(LoginRequestDTO loginRequestDTO);
 
     ApiResponse<RefreshTokenResponseDto> getRefreshToken(String refreshToken);
+
+    ApiResponse<GenericResponseDTO> logout(LogoutRequest logoutRequest);
 }

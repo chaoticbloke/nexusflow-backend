@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -32,5 +34,10 @@ public class AuthController {
     @PostMapping("/refresh-token")
     public ApiResponse<RefreshTokenResponseDto> getRefreshToken(@RequestBody String refreshToken) {
         return authService.getRefreshToken(refreshToken.trim());
+    }
+
+    @PostMapping("/logout")
+    public ApiResponse<GenericResponseDTO> logout(@RequestBody LogoutRequest logoutRequest) {
+        return  authService.logout(logoutRequest);
     }
 }
