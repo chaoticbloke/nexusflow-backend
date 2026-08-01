@@ -49,11 +49,9 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public RegistrationResponseDTO register(RegistrationRequestDTO registrationRequestDTO) {
-        userRepository.findByEmail(registrationRequestDTO.getEmail())
-                .ifPresent(user -> {
-                    throw new EmailAlreadyExistsException(
-                            "User already exists with email: " + user.getEmail());
-                });        //create new user and save it to DB
+        userRepository.findByEmail(registrationRequestDTO.getEmail()).ifPresent(user -> {
+            throw new EmailAlreadyExistsException("User already exists with email: " + user.getEmail());
+        });        //create new user and save it to DB
         User user = new User();
         user.setUserId(identifierUUIDGenerator.generateUserId());
         user.setEmail(registrationRequestDTO.getEmail());
@@ -64,7 +62,7 @@ public class AuthServiceImpl implements AuthService {
         user.setMfaEnabled(false);
 
         Role role = roleRepository.findByRoleName(RolesEnum.ROLE_ADMIN).orElseThrow();
-        System.out.println("ROLE FROM DB "+role.getRoleName());
+        System.out.println("ROLE FROM DB " + role.getRoleName());
         role.setRoleName(RolesEnum.ROLE_ADMIN);
         user.setRoles(Set.of(role));
 
@@ -85,7 +83,7 @@ public class AuthServiceImpl implements AuthService {
         Authentication authenticatedAuthentication = authenticationManager.authenticate(authenticationRequest);
         //this line does lot of things . one of important -Compares Passwords(BCryptPasswordEncoder.matches())
         //if the password/email here is wrong - BadCredentialsException is thrown
-        System.out.println("authenticatedAuthentication identity"+ authenticatedAuthentication.getAuthorities());
+        System.out.println("authenticatedAuthentication identity" + authenticatedAuthentication.getAuthorities());
 
 
         /**
@@ -102,68 +100,58 @@ public class AuthServiceImpl implements AuthService {
 
         User user = principal.getUser();
 
-        UserDto userDto = UserDto.builder()
-                .userId(user.getUserId().toString())
-                .email(user.getEmail())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .roles(user.getRoles().stream().map(Role::getRoleName).map(RolesEnum::name).toList())
-                .build();
+        UserDto userDto = UserDto.builder().userId(user.getUserId().toString()).email(user.getEmail()).firstName(user.getFirstName())
+                .lastName(user.getLastName()).roles(user.getRoles().stream().map(Role::getRoleName).map(RolesEnum::name).toList()).build();
 
-       String accessJwtToken = jwtService.generateAccessToken(principal);
+        String accessJwtToken = jwtService.generateAccessToken(principal);
 
-       //generates Refresh token and saved in DB
-       String refreshToken = refreshTokenService.createRefreshToken(user);
+        //generates Refresh token and saved in DB
+        String refreshToken = refreshTokenService.createRefreshToken(user);
 
-        LoginResponseDto loginResponseDto = LoginResponseDto.builder()
-                .accessToken(accessJwtToken)
-                .refreshToken(refreshToken)
-                .user(userDto)
-                .build();
+        LoginResponseDto loginResponseDto = LoginResponseDto.builder().accessToken(accessJwtToken).refreshToken(refreshToken).user(userDto).build();
 
         //send both tokens in login api response
-        return ApiResponse.<LoginResponseDto>builder()
-                .success(authenticatedAuthentication.isAuthenticated())
-                .message("User logged in successfully")
-                .data(loginResponseDto)
-                .build();
+        return ApiResponse.<LoginResponseDto>builder().success(authenticatedAuthentication.isAuthenticated()).message("User logged in successfully")
+                .data(loginResponseDto).build();
     }
 
     @Override
+    @Transactional
     public ApiResponse<RefreshTokenResponseDto> getRefreshToken(String refreshToken) {
+
+        // 1. Validate JWT
         Claims claims = jwtService.getClaims(refreshToken);
 
         if (!"REFRESH".equals(claims.get("tokenType"))) {
             throw new InvalidRefreshTokenException("Invalid refresh token type.");
         }
 
-        RefreshToken entity = refreshTokenRepository.findByToken(refreshToken)
-                .orElseThrow(() -> new InvalidRefreshTokenException("Refresh token not found."));
+       // 2. Find DB row
+        RefreshToken entity = refreshTokenRepository.findByToken(refreshToken).orElseThrow(() -> new InvalidRefreshTokenException("Invalid refresh token."));
 
+      // 3. Business validations
         if (entity.isRevoked()) {
             throw new InvalidRefreshTokenException("Refresh token has been revoked.");
         }
 
         User user = entity.getUser();
-
         CustomUserDetails userDetails = new CustomUserDetails(user);
 
         if (!jwtService.isTokenValid(refreshToken, userDetails)) {
             throw new InvalidRefreshTokenException("Refresh token has expired or is invalid.");
         }
 
+       // 4. Now mutate state
+        String refreshTokenNew = refreshTokenService.createRefreshToken(user);
+
+        entity.setRevoked(true);
+
+        // 5. Generate access token + DB save
         String accessToken = jwtService.generateAccessToken(userDetails);
 
-        RefreshTokenResponseDto response = RefreshTokenResponseDto.builder()
-                                            .accessToken(accessToken)
-                                            .refreshToken(entity.getToken()) // static refresh
-                                             .build();
+        RefreshTokenResponseDto response = RefreshTokenResponseDto.builder().accessToken(accessToken).refreshToken(refreshTokenNew).build();
 
-        return ApiResponse.<RefreshTokenResponseDto>builder()
-                .success(true)
-                .message("Access token refreshed successfully.")
-                .data(response)
-                .build();
+        return ApiResponse.<RefreshTokenResponseDto>builder().success(true).message("Access token refreshed successfully.").data(response).build();
     }
 
     @Override
@@ -175,29 +163,18 @@ public class AuthServiceImpl implements AuthService {
         //validate refresh token
         jwtService.getClaims(refreshToken);
 
-        RefreshToken entity = refreshTokenRepository.findByToken(refreshToken)
-                .orElseThrow(() -> new InvalidRefreshTokenException("Invalid refresh token."));
+        RefreshToken entity = refreshTokenRepository.findByToken(refreshToken).orElseThrow(() -> new InvalidRefreshTokenException("Invalid refresh token."));
 
-        if(entity.isRevoked()){
-             GenericResponseDTO dto = GenericResponseDTO.builder().message("User already logged out.")
-                     .success(true)
-                    .build();
+        if (entity.isRevoked()) {
+            GenericResponseDTO dto = GenericResponseDTO.builder().message("User already logged out.").success(true).build();
 
-             return ApiResponse.<GenericResponseDTO>builder()
-                     .success(true)
-                     .data(dto)
-                     .build();
+            return ApiResponse.<GenericResponseDTO>builder().success(true).data(dto).build();
         }
-            entity.setRevoked(true);
-            //refreshTokenRepository.save(entity); //no need to explicit if we have transactional. hibernate will auto update
-            GenericResponseDTO dto = GenericResponseDTO.builder().message("Logged out successfully.")
-                    .success(true)
-                    .build();
+        entity.setRevoked(true);
+        //refreshTokenRepository.save(entity); //no need to explicit if we have transactional. hibernate will auto update
+        GenericResponseDTO dto = GenericResponseDTO.builder().message("Logged out successfully.").success(true).build();
 
-            return ApiResponse.<GenericResponseDTO>builder()
-                    .success(true)
-                    .data(dto)
-                    .build();
+        return ApiResponse.<GenericResponseDTO>builder().success(true).data(dto).build();
     }
 
 }
