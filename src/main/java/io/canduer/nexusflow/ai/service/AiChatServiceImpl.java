@@ -17,6 +17,7 @@ public class AiChatServiceImpl implements AiChatService {
 
     private final OpenAIClient openAIClient;
     private final ConversationStore conversationStore;
+    private final KnowledgeService knowledgeService;
 
     @Override
     public ChatResponse chat(ChatRequest request) {
@@ -24,12 +25,32 @@ public class AiChatServiceImpl implements AiChatService {
         // Get previous messages for this conversation
         var history = conversationStore.getMessages(request.getConversationId());
 
+
         // Build conversation input
         String conversation = history.stream().map(message -> message.getRole() + ": " + message.getContent())
                 .collect(Collectors.joining("\n"));
 
         // Add the current user message
-        String input = conversation.isBlank() ? "USER: " + request.getMessage() : conversation + "\nUSER: " + request.getMessage();
+        //not req for RAG
+       // String input = conversation.isBlank() ? "USER: " + request.getMessage() : conversation + "\nUSER: " + request.getMessage();
+
+        String knowledge = knowledgeService.getKnowledge();
+
+
+        String input = """
+        NEXUSFLOW KNOWLEDGE:
+        %s
+
+        CONVERSATION:
+        %s
+
+        USER QUESTION:
+        %s
+        """.formatted(
+                knowledge,
+                conversation,
+                request.getMessage()
+        );
 
         ResponseCreateParams params = ResponseCreateParams.builder()
                 .model(ChatModel.GPT_5_2)
