@@ -6,9 +6,13 @@ import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseCreateParams;
 import io.canduer.nexusflow.ai.dto.ChatRequest;
 import io.canduer.nexusflow.ai.dto.ChatResponse;
+import io.canduer.nexusflow.ai.knowledge.KnowledgeChunk;
+import io.canduer.nexusflow.ai.knowledge.KnowledgeRetriever;
+import io.canduer.nexusflow.ai.knowledge.KnowledgeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -18,6 +22,7 @@ public class AiChatServiceImpl implements AiChatService {
     private final OpenAIClient openAIClient;
     private final ConversationStore conversationStore;
     private final KnowledgeService knowledgeService;
+    private final KnowledgeRetriever knowledgeRetriever;
 
     @Override
     public ChatResponse chat(ChatRequest request) {
@@ -34,7 +39,9 @@ public class AiChatServiceImpl implements AiChatService {
         //not req for RAG
        // String input = conversation.isBlank() ? "USER: " + request.getMessage() : conversation + "\nUSER: " + request.getMessage();
 
-        String knowledge = knowledgeService.getKnowledge();
+        List<KnowledgeChunk> knowledgeChunks = knowledgeService.getKnowledgeChunks();
+        List<KnowledgeChunk> relevantChunks = knowledgeRetriever.retrieve(request.getMessage());
+        String knowledge = relevantChunks.stream().map(KnowledgeChunk::getContent).collect(Collectors.joining("\n\n"));
 
 
         String input = """
