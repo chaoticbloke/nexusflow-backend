@@ -6,6 +6,7 @@ import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseCreateParams;
 import io.canduer.nexusflow.ai.dto.ChatRequest;
 import io.canduer.nexusflow.ai.dto.ChatResponse;
+import io.canduer.nexusflow.ai.dto.KnowledgeSearchResult;
 import io.canduer.nexusflow.ai.embedding.EmbeddingService;
 import io.canduer.nexusflow.ai.knowledge.KnowledgeChunk;
 import io.canduer.nexusflow.ai.knowledge.KnowledgeRetriever;
@@ -22,10 +23,8 @@ public class AiChatServiceImpl implements AiChatService {
 
     private final OpenAIClient openAIClient;
     private final ConversationStore conversationStore;
-    private final KnowledgeService knowledgeService;
     private final KnowledgeRetriever knowledgeRetriever;
-    private final EmbeddingService embeddingService;
-
+    private final KnowledgeRetrievalService knowledgeRetrievalService;
     @Override
     public ChatResponse chat(ChatRequest request) {
 //        List<Float> embedding = embeddingService.generateEmbedding(
@@ -47,9 +46,9 @@ public class AiChatServiceImpl implements AiChatService {
         //not req for RAG
        // String input = conversation.isBlank() ? "USER: " + request.getMessage() : conversation + "\nUSER: " + request.getMessage();
 
-        List<KnowledgeChunk> knowledgeChunks = knowledgeService.getKnowledgeChunks();
-        List<KnowledgeChunk> relevantChunks = knowledgeRetriever.retrieve(request.getMessage());
-        String knowledge = relevantChunks.stream().map(KnowledgeChunk::getContent).collect(Collectors.joining("\n\n"));
+        List<KnowledgeSearchResult> results = knowledgeRetrievalService.retrieve(request.getMessage(), 3);
+
+        String knowledge = results.stream().map(KnowledgeSearchResult::getContent).collect(Collectors.joining("\n\n"));
 
 
         String input = """
@@ -61,11 +60,7 @@ public class AiChatServiceImpl implements AiChatService {
 
         USER QUESTION:
         %s
-        """.formatted(
-                knowledge,
-                conversation,
-                request.getMessage()
-        );
+        """.formatted(knowledge, conversation, request.getMessage());
 
         ResponseCreateParams params = ResponseCreateParams.builder()
                 .model(ChatModel.GPT_5_2)
