@@ -1,7 +1,7 @@
 services:
 
   postgres:
-    image: postgres:17
+    image: pgvector/pgvector:pg17 #postgress supports pgvector
     container_name: nexusflow-postgres
 
     restart: unless-stopped

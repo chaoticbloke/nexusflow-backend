@@ -6,6 +6,7 @@ import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseCreateParams;
 import io.canduer.nexusflow.ai.dto.ChatRequest;
 import io.canduer.nexusflow.ai.dto.ChatResponse;
+import io.canduer.nexusflow.ai.embedding.EmbeddingService;
 import io.canduer.nexusflow.ai.knowledge.KnowledgeChunk;
 import io.canduer.nexusflow.ai.knowledge.KnowledgeRetriever;
 import io.canduer.nexusflow.ai.knowledge.KnowledgeService;
@@ -23,9 +24,16 @@ public class AiChatServiceImpl implements AiChatService {
     private final ConversationStore conversationStore;
     private final KnowledgeService knowledgeService;
     private final KnowledgeRetriever knowledgeRetriever;
+    private final EmbeddingService embeddingService;
 
     @Override
     public ChatResponse chat(ChatRequest request) {
+//        List<Float> embedding = embeddingService.generateEmbedding(
+//                "The Invoice module manages invoices associated with customers."
+//        );
+//
+//        System.out.println("Embedding dimensions: " + embedding.size());
+//        System.out.println("First 5 values: " + embedding.subList(0, 5));
 
         // Get previous messages for this conversation
         var history = conversationStore.getMessages(request.getConversationId());
