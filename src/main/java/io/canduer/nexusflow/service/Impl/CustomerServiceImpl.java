@@ -1,5 +1,7 @@
 package io.canduer.nexusflow.service.Impl;
 
+import io.canduer.nexusflow.common.cache.RedisCacheKeys;
+import io.canduer.nexusflow.common.cache.RedisCacheService;
 import io.canduer.nexusflow.dto.*;
 import io.canduer.nexusflow.entity.Customer;
 import io.canduer.nexusflow.entity.Invoice;
@@ -16,15 +18,18 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Objects;
+
+import static io.canduer.nexusflow.utils.AppConstants.REDIS_CACHE_TTL_MINUTES;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +47,9 @@ public class CustomerServiceImpl implements CustomerService {
     private final CustomerMapper customerMapper;
 
     private final InvoiceMapper invoiceMapper;
+
+    private final RedisCacheService redisCacheService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -94,6 +102,9 @@ public class CustomerServiceImpl implements CustomerService {
 
         Customer savedCustomer = customerRepository.save(customer); //hibernate managed entity - save is optional in here-JPA's dirty checking
 
+        //customer state changed : remove from redisCache after transaction commit
+        // using springs event publish and listener approach
+        eventPublisher.publishEvent(customerId);
 
         return customerMapper.customerEntityToCustomerDTO(savedCustomer);
     }
@@ -131,8 +142,24 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public CustomerResponseDTO getCustomer(String customerId) {
+        //redis key
+        String redisKey = RedisCacheKeys.customer(customerId);
+
+        Object cached = redisCacheService.get(redisKey);
+
+        if(Objects.nonNull(cached)){
+            return (CustomerResponseDTO) cached;
+        }
+
+        //redis cache : MISS
         Customer customer = customerRepository.findByCustomerId(customerId).orElseThrow(()->new ResourceNotFoundException("Customer not found for this customerId "+ customerId));
-        return customerMapper.customerEntityToCustomerDTO(customer);
+
+        CustomerResponseDTO response = customerMapper.customerEntityToCustomerDTO(customer);
+
+        //store into in-memory redis
+        redisCacheService.set(redisKey, response, Duration.ofMinutes(REDIS_CACHE_TTL_MINUTES));
+
+        return response;
     }
 
     @Override
