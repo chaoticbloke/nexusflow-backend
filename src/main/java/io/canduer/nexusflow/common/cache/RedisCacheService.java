@@ -1,5 +1,7 @@
 package io.canduer.nexusflow.common.cache;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -14,8 +16,17 @@ import java.time.Duration;
 public class RedisCacheService {
     private final RedisTemplate<String, Object> redisTemplate;
 
-    public Object get(String key) {
-        return redisTemplate.opsForValue().get(key);
+    private final ObjectMapper objectMapper;
+
+    public <T> T get(String key, Class<T> type) {
+
+        Object cached = redisTemplate.opsForValue().get(key);
+
+        if (cached == null) {
+            return null;
+        }
+
+        return objectMapper.convertValue(cached, type);
     }
 
     public void set(String key, Object value, Duration ttl) {

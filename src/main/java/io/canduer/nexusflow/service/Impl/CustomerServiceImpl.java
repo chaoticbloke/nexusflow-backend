@@ -3,6 +3,7 @@ package io.canduer.nexusflow.service.Impl;
 import io.canduer.nexusflow.common.cache.RedisCacheKeys;
 import io.canduer.nexusflow.common.cache.RedisCacheService;
 import io.canduer.nexusflow.dto.*;
+import io.canduer.nexusflow.dto.events.CustomerUpdatedEvent;
 import io.canduer.nexusflow.entity.Customer;
 import io.canduer.nexusflow.entity.Invoice;
 import io.canduer.nexusflow.entity.User;
@@ -104,7 +105,7 @@ public class CustomerServiceImpl implements CustomerService {
 
         //customer state changed : remove from redisCache after transaction commit
         // using springs event publish and listener approach
-        eventPublisher.publishEvent(customerId);
+        eventPublisher.publishEvent(new CustomerUpdatedEvent(customerId));
 
         return customerMapper.customerEntityToCustomerDTO(savedCustomer);
     }
@@ -145,10 +146,10 @@ public class CustomerServiceImpl implements CustomerService {
         //redis key
         String redisKey = RedisCacheKeys.customer(customerId);
 
-        Object cached = redisCacheService.get(redisKey);
+        CustomerResponseDTO cached = redisCacheService.get(redisKey, CustomerResponseDTO.class);
 
-        if(Objects.nonNull(cached)){
-            return (CustomerResponseDTO) cached;
+        if (cached != null) {
+            return cached;
         }
 
         //redis cache : MISS
