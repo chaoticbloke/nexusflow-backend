@@ -14,6 +14,7 @@ import io.canduer.nexusflow.mapper.UserEntityMapper;
 import io.canduer.nexusflow.repository.RefreshTokenRepository;
 import io.canduer.nexusflow.repository.RoleRepository;
 import io.canduer.nexusflow.repository.UserRepository;
+import io.canduer.nexusflow.service.Impl.kafka.OutboxService;
 import io.canduer.nexusflow.service.RefreshTokenService;
 import io.canduer.nexusflow.utils.IdentifierUUIDGenerator;
 import io.jsonwebtoken.Claims;
@@ -45,6 +46,7 @@ public class AuthServiceImpl implements AuthService {
     private final IdentifierUUIDGenerator identifierUUIDGenerator;
     private final RefreshTokenService refreshTokenService;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final OutboxService outboxService;
 
     @Override
     @Transactional
@@ -62,14 +64,14 @@ public class AuthServiceImpl implements AuthService {
         user.setMfaEnabled(false);
 
         Role role = roleRepository.findByRoleName(RolesEnum.ROLE_ADMIN).orElseThrow();
-        System.out.println("ROLE FROM DB " + role.getRoleName());
         role.setRoleName(RolesEnum.ROLE_ADMIN);
         user.setRoles(Set.of(role));
 
         user.setFailedLoginAttempts(0);
         user.setPassword(passwordEncoder.encode(registrationRequestDTO.getPassword()));
         User newUser = userRepository.save(user);
-
+        //kafka outbox event for caching
+        outboxService.saveUserRegisteredEvent(newUser);
         return userEntityMapper.entityToDto(newUser);
     }
 
